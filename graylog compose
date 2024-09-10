@@ -1,0 +1,47 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:4.2
+    container_name: graylog-mongo
+    networks:
+      - graylog
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    container_name: graylog-elasticsearch
+    environment:
+      - discovery.type=single-node
+    networks:
+      - graylog
+
+  graylog:
+    image: graylog/graylog:4.1
+    container_name: graylog
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=mysecretpassword
+      - GRAYLOG_ROOT_PASSWORD_SHA2=ac0e7d037817094e9e0b4441f9bae3209d67b02fa484917065f71b16109a1a78
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+    depends_on:
+      - mongo
+      - elasticsearch
+    networks:
+      - graylog
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+      - "5044:5044"  # Logstash port for Filebeat
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.10.2
+    container_name: filebeat
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - graylog
+    depends_on:
+      - graylog
+
+networks:
+  graylog:
+    driver: bridge
