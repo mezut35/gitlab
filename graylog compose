@@ -5,7 +5,6 @@ services:
     container_name: graylog-mongo
     networks:
       - graylog
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
     container_name: graylog-elasticsearch
@@ -13,7 +12,6 @@ services:
       - discovery.type=single-node
     networks:
       - graylog
-
   graylog:
     image: graylog/graylog:4.1
     container_name: graylog
@@ -29,19 +27,6 @@ services:
     ports:
       - "9000:9000"
       - "12201:12201/udp"
-      - "5044:5044"  # Logstash port for Filebeat
-
-  filebeat:
-    image: docker.elastic.co/beats/filebeat:7.10.2
-    container_name: filebeat
-    volumes:
-      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - graylog
-    depends_on:
-      - graylog
-
 networks:
   graylog:
     driver: bridge
