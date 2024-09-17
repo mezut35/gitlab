@@ -6,3 +6,4 @@ dpkg --get-selections | grep -v deinstall
 
 dosya list
 find . -type f -size +1G -exec ls -lh {} \;
+find . -type f -size +1G
