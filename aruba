@@ -1,0 +1,23 @@
+enable
+configure terminal
+
+interface 1/1/1
+   vlan access 10
+
+
+interface 1/1/1
+   vlan trunk native 1
+   vlan trunk allowed 10,20
+
+interface 1/1/1
+   vlan trunk native 1
+   vlan trunk allowed 10,20
+   vlan trunk tagging 10,20
+
+
+show vlan
+show running-config
+show access-list
+show port-access security
+
+
