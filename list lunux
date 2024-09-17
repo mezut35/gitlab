@@ -1,0 +1,6 @@
+Çalışan Servisler
+sudo systemctl list-units --type=service --state=running 
+
+Yüklü Uygulamalar
+dpkg --get-selections | grep -v deinstall
+
