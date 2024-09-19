@@ -10,3 +10,7 @@ find . -type f -size +1G
 
 
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+
+dosya listele 256 üzeri
+find / -type f -size +256M -exec ls -lh {} \; | awk '{print $9 ": " $5}'
