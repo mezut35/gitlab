@@ -1,0 +1,187 @@
+Skip to end of metadata
+Created by Onurcan Tatar on Jul 20, 2023Go to start of metadata
+SİSTEM BİLGİSİ KOMUTLARI
+uname -a # Linux sistem bilgilerini görüntüler
+uname -r # Çekirdek sürüm bilgilerini görüntüler
+uptime # Sistemin ne kadar süredir çalıştığını gösterir
+hostname # Ana bilgisayar adını gösterir
+hostname -I # Ana bilgisayarın IP adreslerini görüntüler
+last reboot # Sistem yeniden başlatma geçmişini gösterir
+date # Geçerli tarih ve saati gösterir
+cal # Bu ayın takvimini gösterir
+w # Kimin çevrimiçi olduğunu gösterir
+whoami # Kimin (kullanıcı adı) giriş yaptığını gösterir
+
+
+
+DONANIM BİLGİSİ KOMUTLARI
+dmesg # Çekirdek arabelleğindeki mesajları görüntüler
+cat /proc/cpuinfo # CPU bilgilerini görüntüler
+cat /proc/meminfo # Bellek bilgilerini görüntüler
+free -h # Toplam, boş ve kullanılan belleği görüntüler
+lspci -tv # PCI aygıtları gösterir
+lsusb -tv # USB aygıtları gösterir
+dmidecode # BIOS'tan DMI/SMBIOS bilgisini görüntüler
+hdparm -i /dev/sda # sda disk hakkında bilgileri gösterir
+hdparm -tT /dev/sda # sda disk üzerinde bir okuma hızı testi yapar
+badblocks -s /dev/sda # sda diskte okunamayan blokları test eder
+
+
+
+PERFORMANS İZLEME VE İSTATİSTİK KOMUTLARI
+top # En önemli süreçleri görüntüler ve yönetir
+htop # Etkileşimli süreç görüntüleyici
+mpstat 1 # İşlemci ile ilgili istatistikleri görüntüler
+vmstat 1 # Sanal bellek istatistiklerini görüntüler
+iostat 1 # I/O istatistiklerini görüntüler
+tcpdump -i eth0 # eth0 arabirimindeki tüm paketleri yakalar ve görüntüler
+lsof # Sistemdeki tüm açık dosyaları listeler
+lsof -u user # Kullanıcı tarafından açılan dosyaları listeler
+watch df -h # Periyodik güncellemeleri gösteren "df -h" komutunu yürütür
+
+
+
+KULLANICI BİLGİLERİ VE YÖNETİMİ KOMUTLARI
+id # Mevcut kullanıcınızın kullanıcı ve grup kimliklerini görüntüler
+last # Sisteme en son giriş yapan kullanıcıları görüntüler
+who # Sisteme kimin giriş yaptığını gösterir
+groupadd test # "test" adında bir grup oluşturur
+useradd -c "Cemal Taner" -m cemal # "Cemal Taner" açıklamasıyla
+cemal adında bir hesap ve kullanıcının ana dizinini oluşturur
+userdel cemal # cemal hesabını siler
+usermod -aG test cemal # cemal hesabını test grubuna ekler
+
+
+
+DOSYA VE DİZİN KOMUTLARI
+ls -al # Tüm dosyaları ayrıntılı bir liste formatında gösterir
+pwd # Mevcut çalışma dizinini gösterir
+mkdir directory # Bir dizin oluşturur
+rm file # Dosyayı kaldırır (siler)
+rm -r directory #Dizini ve içeriğini yinelemeli olarak kaldırır
+rm -f file # Onay istemeden dosyanın kaldırılmasını zorlar
+rm -rf directory # Dizini yinelemeli olarak zorla kaldırır
+cp dosya1 dosya2 # Dosya1'i dosya2'ye kopyalar
+cp -r source_directory destination # Kaynak_dizini yinelemeli olarak hedefe kopyalar.
+Hedef varsa, kaynak_dizini hedefe kopyalar, aksi takdirde kaynak_dizinin içeriğiyle hedefi oluşturur.
+mv dosya1 dosya2 # Dosya1'i dosya2'ye yeniden adlandırır veya taşır.
+Dosya2 mevcut bir dizinse, dosya1'i dosya2 dizinine taşır
+ln -s /path/to/file linkname # Linkname için sembolik link oluşturur
+touch file # Boş bir dosya oluşturur veya dosyanın erişim ve değişiklik zamanlarını günceller.
+cat file # Dosyanın içeriğini görüntüler
+less file # Bir metin dosyasına göz atar
+head file # Dosyanın ilk 10 satırını gösterir
+tail file # Dosyanın son 10 satırını gösterir
+tail -f file # Dosyanın son 10 satırını görüntüler ve dosyayı büyüdükçe takip eder
+
+
+
+SÜREÇ YÖNETİMİ KOMUTLARI
+ps # Şu anda çalışan işlemleri görüntüler
+ps -ef # Sistemde şu anda çalışan tüm işlemleri görüntüler
+ps -ef | grep processname #processname için işlem bilgilerini görüntüler
+kill pid # pid işlem kimliğiyle işlemi sonlandırır
+killall processname # İşlem ismiyle tüm işlemleri sonlandırır program & # Programı arka planda başlatır
+bg # Durdurulan veya arka plandaki işlemleri gösterir
+fg # En son arka plandaki işlemi ön plana çıkarır
+fg n # n işlemini ön plana çıkarır
+
+
+
+DOSYA İZİN KOMUTLARI
+Execute: Çalıştırma
+Write:Yazma
+Read: Okuma
+User: Kullanıcı
+Group: Grup
+Other: Diğerleri
+All: Hepsi
+Örnek
+U G W
+rwx rwx rwx chmod 777 filename
+rwx rwx r-x chmod 775 filename
+rwx r-x r-x chmod 755 filename
+rw- rw- r-- chmod 664 filename
+rw- r-- r-- chmod 644 filename
+U = User G = Group W = World r = Read w = write x = execute - = no access
+
+
+
+AĞ KOMUTLARI
+ifconfig -a # Tüm ağ arayüzlerini ve ip adresini gösterir (Bazı dağıtımlarda net-tools paketi yüklenmelidir)
+ifconfig eth0 # eth0 adresini ve ayrıntılarını gösterir
+ethtool eth0 # Ağ sürücüsü ve donanım ayarlarını sorgular veya kontrol eder
+ping host # Ana bilgisayara ICMP yankı isteği gönderir
+whois domain # Alan adı whois bilgilerini gösterir
+dig domain # Alan adı DNS bilgilerini gösterir
+dig -x IP_ADDRESS #IP adresine karşılık gelen alan adını bulur
+host domain # Etki alanı için DNS ip adresini gösterir
+hostname -i # Ana bilgisayarın ağ adresini görüntüler
+hostname -I # Tüm yerel ip adreslerini gösterir
+wget http://domain.com/file # http://domain.com/file adresindeki dosyayı indirir
+netstat -nutlp # Dinlenen tcp ve udp bağlantı noktalarını ve ilgili programları görüntüler
+
+
+
+ARŞİV (TAR DOSYALARI) KOMUTLARI
+tar cf archive.tar directory # tar uzantılı archive.tar sıkıştırılmış dosyasını oluşturur
+tar xf archive.tar # Archive.tar'dan içeriği çıkartır
+tar czf archive.tar.gz directory # Archive.tar.gz adında bir gzip sıkıştırılmış tar dosyası oluşturur
+tar xzf archive.tar.gz # Sıkıştırılmış bir gzip tar dosyasını ayıklar
+tar cjf archive.tar.bz2 directory # bzip2 sıkıştırmalı bir tar dosyası oluşturur
+tar xjf archive.tar.bz2 # Bir bzip2 sıkıştırılmış tar dosyasını ayıklar
+
+
+
+PAKET KURULUM KOMUTLARI
+apt search keyword # Anahtar kelimeye göre bir paket arar
+apt install package # Paketi kurar
+apt info package # Paketle ilgili açıklama ve özet bilgileri görüntüler
+dpkg -i package.deb # Paketi package.deb adlı yerel dosyadan yükler
+tar zxvf sourcecode.tar.gz # Yazılımı kaynak koddan yükler
+cd sourcecode
+./configure
+make
+make install
+s
+
+
+
+ARAMA KOMUTLARI
+grep pattern file #Dosya içinde pattern arar
+grep -r pattern directory # Dizinde pattern için yinelemeli arama yapar
+locate name # Dosya ve dizinleri ada göre bulur
+find /home/john -name 'prefix*' # /home/john'da "prefix" ile başlayan dosyaları bulur
+find /home -size +100M # /home'da 100 MB'tan büyük dosyaları bulun
+
+
+
+SSH BAĞLANTISI
+ssh host # Yerel kullanıcı adınız ile sunucuya bağlanır
+ssh user@host # Kullanıcı(user) olarak ana bilgisayara bağlanır
+ssh -p port user@host # Bağlantı noktasını kullanarak ana bilgisayara bağlanır
+
+
+
+DOSYA TRANSFERİ KOMUTLARI
+scp file.txt server:/tmp # file.txt dosyasını sunucudaki /tmp klasörüne güvenli bir şekilde kopyalar
+scp server:/var/www/*.html /tmp # *.html dosyalarını sunucudan yerel /tmp klasörüne kopyalayın.
+scp -r server:/var/www /tmp # Tüm dosya ve dizinleri yinelemeli olarak kopyalar
+rsync -a /home /backups/ # Dosyaları /home ile /backups/home arasında senkronize eder
+rsync -avz /home server:/backups/ # Dosyaları/dizinleri, sıkıştırma etkinken yerel ve uzak sistem arasında senkronize eder
+
+
+
+DİSK KULLANIMI KOMUTLARI
+df -h # Bağlı dosya sistemlerinde boş ve kullanılmış alanı gösterir
+df -i # Bağlı dosya sistemlerinde boş ve kullanılmış düğümleri gösterir
+fdisk -l # Disk bölümlerinin boyutlarını ve türlerini görüntüler
+du -ah # Tüm dosyalar ve dizinler için disk kullanımını okunabilir biçimde görüntüler
+du -sh # Geçerli dizindeki toplam disk kullanımını göster
+
+
+
+DİZİNLERDE GEZİNME KOMUTLARI
+cd.. # Dizin ağacında bir seviye yukarı çıkmak için kullanılır
+cd # $HOME dizinine gider
+cd /etc # /etc dizinine geçer
