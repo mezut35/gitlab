@@ -1,0 +1,28 @@
+sudo auditctl -w /etc/passwd -p war -k passwd_changes
+-w: İzlenecek dosya
+-p war: Hangi işlemlerin izleneceğini belirtir (write, attribute change, read).
+-k: Bir anahtar ekleyerek bu kurala özel bir isim
+
+
+----------------------------
+
+sudo ausearch -k passwd_changes  --- Logları izleme
+
+sudo ausearch -ts today -k passwd_changes --- günlük izleme
+
+sudo aureport --file    --- Lod detayları
+sudo aureport --user   --- kullanıcı aktiviteleri
+sudo auditctl -l  --- mevcut kurallaarı listeleme
+
+
+------------------------------------------------------------
+sudo nano /etc/audisp/plugins.d/syslog.conf  -------------- rsys ye yönlendirme
+active = yes
+direction = out
+path = builtin_syslog
+type = builtin
+args = LOG_INFO
+format = string
+
+
+if $programname == 'auditd' then @@"ip adresi":514   ----   
