@@ -26,3 +26,6 @@ format = string
 
 
 if $programname == 'auditd' then @@"ip adresi":514   ----   
+
+
+nano /etc/audit/rules.d/audit.rules
