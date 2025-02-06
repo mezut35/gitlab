@@ -1,0 +1,141 @@
+import asyncio
+import re
+import aiohttp
+import logging
+from telethon import TelegramClient, events
+from telethon.errors import RPCError, SessionPasswordNeededError, FloodWaitError
+
+# 📌 Loglama Ayarları
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("telegram_bot.log"),
+        logging.StreamHandler()
+    ]
+)
+
+# 📌 Telegram API Bilgileri
+api_id = 24974416
+api_hash = "1c201b57b44b2fd17ef0d9de833bea57"
+session_name = "aliveli"
+
+# 📌 Kaynak ve Hedef Kanallar
+SOURCE_CHANNEL = "@Beauty_Schoenheit"   # Mesajları yakalayacağımız kanal
+TARGET_CHANNEL = "@bbttestamazon"    # Affiliate linkin gönderileceği kanal
+
+# 📌 Amazon Affiliate Ayarları
+AFFILIATE_TAG = "bbtdeals0d-21"
+
+# 📌 Amazon Link İşleme Sınıfı
+class AmazonLinkProcessor:
+    """Amazon kısa linklerini çözümler ve affiliate linklere dönüştürür."""
+
+    def __init__(self, affiliate_tag):
+        self.affiliate_tag = affiliate_tag
+
+    async def get_final_url(self, short_url: str) -> str:
+        """Kısa Amazon URL'yi çözümler ve gerçek yönlendirilmiş linki döndürür."""
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36"
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(short_url, headers=headers, timeout=10, allow_redirects=True) as response:
+                    final_url = str(response.url)
+                    logging.info(f"🔄 Çözümlenen Link: {short_url} ➝ {final_url}")
+                    return final_url
+        except Exception as e:
+            logging.error(f"🔴 get_final_url hata: {e}")
+            return None
+
+    def extract_product_id(self, url: str) -> str:
+        """Amazon URL içindeki ürün ID'sini çıkartır."""
+        match = re.search(r'(?:/dp/|/gp/product/)([A-Z0-9]{10})', url)
+        return match.group(1) if match else None
+
+    def generate_affiliate_url(self, product_id: str) -> str:
+        """Ürün ID'yi affiliate linke çevirir."""
+        return f"https://www.amazon.de/dp/{product_id}?th=1&linkCode=sl1&tag={self.affiliate_tag}&language=de_DE&ref_=as_li_ss_tl"
+
+    async def process_amazon_link(self, link: str) -> str:
+        """Amazon kısa linkini affiliate linke dönüştürür."""
+        logging.info(f"🔄 Amazon link işleniyor: {link}")
+
+        final_url = await self.get_final_url(link)
+        if not final_url:
+            logging.error("🔴 Amazon linki çözümlenemedi.")
+            return None
+
+        product_id = self.extract_product_id(final_url)
+        if not product_id:
+            logging.error(f"🔴 Ürün ID'si bulunamadı. Link: {final_url}")
+            return None
+
+        affiliate_url = self.generate_affiliate_url(product_id)
+        logging.info(f"✅ Affiliate Link: {affiliate_url}")
+        return affiliate_url
+
+# 📌 Telethon Client Başlat
+client = TelegramClient(session_name, api_id, api_hash)
+processor = AmazonLinkProcessor(AFFILIATE_TAG)
+
+async def process_message(message):
+    """Mesajdaki linkleri bulur ve işler."""
+    # Telethon'da mesaj metni genellikle message.text şeklinde erişilir.
+    text = message.text or ""
+    logging.info(f"📩 Yeni mesaj alındı: {text}")
+
+    # Mesaj içindeki tüm linkleri bul
+    links = re.findall(r'(https?://[^\s]+)', text)
+    if not links:
+        logging.info("🟡 Mesajda herhangi bir link bulunamadı.")
+        return
+
+    for link in links:
+        if "amzn.to" in link:
+            affiliate_link = await processor.process_amazon_link(link)
+            if affiliate_link:
+                try:
+                    await client.send_message(TARGET_CHANNEL, affiliate_link)
+                    logging.info(f"✅ Gönderildi: {affiliate_link}")
+                except Exception as e:
+                    logging.error(f"🔴 Kanal mesaj gönderme hatası: {e}")
+            else:
+                logging.error("🔴 Affiliate link oluşturulamadı.")
+
+# Olay dinleyici: Sadece SOURCE_CHANNEL'dan gelen tüm mesajları dinler
+@client.on(events.NewMessage(chats=SOURCE_CHANNEL))
+async def channel_message_handler(event):
+    logging.info("Yeni mesaj yakalandı.")
+    print("Yeni mesaj yakalandı:", event.message)
+    await process_message(event.message)
+
+async def start_bot():
+    """Botu sürekli çalışır halde tutar ve bağlantı koparsa tekrar bağlanır."""
+    retry_delay = 5  # İlk yeniden bağlanma süresi 5 saniye
+
+    while True:
+        try:
+            logging.info("🚀 Aliveli userbot başlatılıyor...")
+            await client.connect()
+
+            if not await client.is_user_authorized():
+                logging.warning("⚠ Bağlantı yetkisiz! Lütfen telefon numarası ile giriş yapın.")
+                await client.send_code_request("+905325674607")
+                await client.sign_in("+905325674607", input("Telegram Kodunu Girin: "))
+
+            logging.info("✅ Bağlantı başarılı, bot çalışıyor...")
+            await client.run_until_disconnected()
+
+        except FloodWaitError as e:
+            wait_time = e.seconds
+            logging.warning(f"🟡 FloodWaitError: {wait_time} saniye bekleniyor...")
+            await asyncio.sleep(wait_time)
+        except (RPCError, SessionPasswordNeededError, OSError) as e:
+            logging.warning(f"🔄 Bağlantı hatası: {e}. {retry_delay} saniye sonra yeniden bağlanılıyor...")
+            await asyncio.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, 60)  # Maksimum 60 saniye bekleyin
+
+if __name__ == '__main__':
+    asyncio.run(start_bot())
