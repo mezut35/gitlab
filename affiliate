@@ -35,7 +35,7 @@ session_headers = {
 # 📌 Amazon Link İşleme Sınıfı
 class AmazonLinkProcessor:
     """Amazon kısa linklerini çözümler ve affiliate linklere dönüştürür."""
-    
+
     def __init__(self, affiliate_tag, session):
         self.affiliate_tag = affiliate_tag
         self.session = session
