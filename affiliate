@@ -3,9 +3,9 @@ import re
 import aiohttp
 import logging
 from telethon import TelegramClient, events
-from telethon.errors import RPCError, SessionPasswordNeededError, FloodWaitError
 
-# 📌 Loglama Ayarları
+# -----------------------------------------------------------------------------
+# Loglama Ayarları
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO,
@@ -15,63 +15,72 @@ logging.basicConfig(
     ]
 )
 
-# 📌 Telegram API Bilgileri
-api_id = 24974416
-api_hash = "1c201b57b44b2fd17ef0d9de833bea57"
-session_name = "aliveli"
+# -----------------------------------------------------------------------------
+# Telegram API Bilgileri (Verilen Bilgiler)
+api_id = 20642723
+api_hash = "6c5e7c19f3a701201707ee28da0a40f6"
+session_name = "amznbbt"
+phone_number = "306940656110"  # Ülke kodu ile tam numara
 
-# 📌 Kaynak ve Hedef Kanallar
-SOURCE_CHANNEL = "@Elektro_Gaming"   # Mesajları yakalayacağımız kanal (güncellendi)
-TARGET_CHANNEL = "@bbttestamazon"      # Affiliate linkin gönderileceği kanal
+# -----------------------------------------------------------------------------
+# Kaynak ve Hedef Kanallar
+SOURCE_CHANNELS = ["@couponsundrabatte2" , "@Beauty_Schoenheit" ]  # Mesajları dinleyeceğimiz kanal(lar)
+TARGET_CHANNEL = "@bbtdeals"              # Dönüştürülmüş mesajların gönderileceği kanal
 
-# 📌 Amazon Affiliate Ayarları
+# -----------------------------------------------------------------------------
+# Amazon Affiliate Ayarları
 AFFILIATE_TAG = "bbtdeals0d-21"
 
-# 📌 Session Headers
-session_headers = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36"
-}
-
-# 📌 Amazon Link İşleme Sınıfı
+# -----------------------------------------------------------------------------
+# Amazon Link İşleme Sınıfı
 class AmazonLinkProcessor:
-    """Amazon kısa linklerini çözümler ve affiliate linklere dönüştürür."""
+    """
+    Amazon linklerini açıp yönlenen final URL'den ürün ID'sini alır,
+    ve bu ID üzerinden yalnızca affiliate tag parametresini içeren sade bir affiliate link oluşturur.
 
+    Oluşturulan link formatı:
+    https://www.amazon.de/dp/<PRODUCT_ID>?tag=AFFILIATE_TAG
+    """
     def __init__(self, affiliate_tag, session):
         self.affiliate_tag = affiliate_tag
         self.session = session
 
-    async def get_final_url(self, short_url: str) -> str:
-        """Kısa Amazon URL'yi çözümler ve gerçek yönlendirilmiş linki döndürür."""
+    async def get_final_url(self, url: str) -> str:
+        """Kısaltılmış veya yönlendiren Amazon linkini açar ve final URL'yi döndürür."""
         try:
-            async with self.session.get(short_url, timeout=10, allow_redirects=True) as response:
+            async with self.session.get(url, timeout=10, allow_redirects=True) as response:
                 final_url = str(response.url)
-                logging.info(f"🔄 Çözümlenen Link: {short_url} ➝ {final_url}")
+                logging.info(f"🔄 Çözümlenen Link: {url} ➝ {final_url}")
                 return final_url
         except Exception as e:
-            logging.error(f"🔴 get_final_url hata: {e}")
+            logging.error(f"🔴 get_final_url hata: {e} - URL: {url}")
             return None
 
     def extract_product_id(self, url: str) -> str:
-        """Amazon URL içindeki ürün ID'sini çıkartır."""
-        match = re.search(r'(?:/dp/|/gp/product/)([A-Z0-9]{10})', url)
-        if match:
-            product_id = match.group(1)
-            logging.info(f"Ürün ID'si bulundu: {product_id}")
-            return product_id
+        """
+        Final URL içerisinden Amazon ürün ID'sini (ASIN) çıkartır.
+        Standart /dp/ veya /gp/product/ desenlerinin yanı sıra,
+        bazı durumlarda URL içinde 'asin=' parametresi de bulunabilir.
+        """
+        patterns = [
+            r'(?:/dp/|/gp/product/)([A-Z0-9]{10})',
+            r'asin=([A-Z0-9]{10})'
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                product_id = match.group(1)
+                logging.info(f"Ürün ID'si bulundu: {product_id}")
+                return product_id
         logging.error(f"Ürün ID'si bulunamadı: {url}")
         return None
 
     def generate_affiliate_url(self, product_id: str) -> str:
-        """Ürün ID'yi affiliate linke çevirir."""
-        affiliate_url = (
-            f"https://www.amazon.de/dp/{product_id}"
-            f"?th=1&linkCode=sl1&tag={self.affiliate_tag}"
-            "&language=de_DE&ref_=as_li_ss_tl"
-        )
-        return affiliate_url
+        """Affiliate link oluşturur."""
+        return f"https://www.amazon.de/dp/{product_id}?tag={self.affiliate_tag}"
 
     async def process_amazon_link(self, link: str) -> str:
-        """Amazon kısa linkini affiliate linke dönüştürür."""
+        """Amazon linkini alır, yönlendirmeleri takip edip affiliate linke dönüştürür."""
         logging.info(f"🔄 Amazon link işleniyor: {link}")
         final_url = await self.get_final_url(link)
         if not final_url:
@@ -80,107 +89,105 @@ class AmazonLinkProcessor:
 
         product_id = self.extract_product_id(final_url)
         if not product_id:
-            logging.error(f"🔴 Ürün ID'si bulunamadı. Link: {final_url}")
+            logging.error(f"🔴 Ürün ID'si bulunamadı. Final URL: {final_url}")
             return None
 
         affiliate_url = self.generate_affiliate_url(product_id)
-        logging.info(f"✅ Affiliate Link: {affiliate_url}")
+        logging.info(f"✅ Affiliate Link oluşturuldu: {affiliate_url}")
         return affiliate_url
 
-# --------------------------------------
-# Link işlemini paralel yürütecek yardımcı fonksiyon
-async def process_link(link: str, processor, client):
-    try:
-        affiliate_link = await processor.process_amazon_link(link)
-        if affiliate_link:
-            try:
-                await client.send_message(TARGET_CHANNEL, affiliate_link)
-                logging.info(f"✅ Gönderildi: {affiliate_link}")
-            except Exception as e:
-                logging.error(f"🔴 Kanal mesaj gönderme hatası: {e}")
-        else:
-            logging.error("🔴 Affiliate link oluşturulamadı.")
-    except Exception as e:
-        logging.error(f"🔴 process_link hatası: {e}")
-
-# --------------------------------------
-# Mesajdaki tüm linkleri işleyen fonksiyon
-async def process_message(message, processor, client):
-    try:
-        # Bazı mesajlarda linkler caption içerisinde olabilir
-        text = message.text or message.caption or ""
-        logging.info(f"📩 Yeni mesaj alındı: {text}")
-
-        # Mesaj içindeki tüm linkleri yakalamaya çalışıyoruz
-        links = re.findall(r'(https?://[^\s]+)', text)
-        if not links:
-            logging.info("🟡 Mesajda herhangi bir link bulunamadı.")
-            return
-
-        # amzn.to linklerini paralel olarak işleyelim
-        tasks = []
-        for link in links:
-            if "amzn.to" in link:
-                tasks.append(process_link(link, processor, client))
-        if tasks:
-            await asyncio.gather(*tasks)
-    except Exception as e:
-        logging.error(f"🔴 process_message sırasında hata: {e}")
-
-# --------------------------------------
-# Telethon event listener: Sadece SOURCE_CHANNEL'dan gelen mesajlar
-def register_handlers(client, processor):
-    @client.on(events.NewMessage(chats=SOURCE_CHANNEL))
-    async def channel_message_handler(event):
-        try:
-            logging.info("Yeni mesaj yakalandı.")
-            logging.info(f"Mesaj: {event.message}")
-            await process_message(event.message, processor, client)
-        except Exception as e:
-            logging.error(f"🔴 channel_message_handler hatası: {e}")
-
-# --------------------------------------
-# Botu sürekli çalışır halde tutan ana fonksiyon
-async def start_bot():
-    retry_delay = 5  # İlk yeniden bağlanma süresi 5 saniye
-
-    # Telethon client'ı burada oluşturuyoruz
+# -----------------------------------------------------------------------------
+# Telegram Giriş ve Doğrulama Fonksiyonu
+async def login_to_telegram():
     client = TelegramClient(session_name, api_id, api_hash)
+    await client.connect()
 
-    # aiohttp session'ı asenkron blok içerisinde oluşturuyoruz
-    async with aiohttp.ClientSession(headers=session_headers) as aiohttp_session:
+    if not await client.is_user_authorized():
+        logging.info("🔵 Doğrulama kodu gönderiliyor...")
+        await client.send_code_request(phone_number)
+        code = input("📌 Telegram doğrulama kodunu girin: ")
+        try:
+            await client.sign_in(phone_number, code)
+            logging.info("✅ Başarıyla giriş yapıldı!")
+        except Exception as e:
+            logging.error(f"🔴 Giriş hatası: {e}")
+    else:
+        logging.info("✅ Oturum zaten yetkilendirilmiş.")
+
+    return client
+
+# -----------------------------------------------------------------------------
+# Mesajı İşleyip Hedef Kanala Gönderen Fonksiyon
+async def forward_message(message, client, processor):
+    try:
+        # Raw text veya normal text alınır
+        text = getattr(message, "raw_text", None) or (message.text or message.caption or "")
+        if not text:
+            logging.warning("⚠ Gelen mesajda okunabilir metin bulunamadı.")
+        else:
+            logging.info(f"📥 Mesaj yakalandı (kaynak kanal): {message.chat_id if message.chat_id else 'Bilinmiyor'}")
+            logging.info("📄 Orijinal mesaj içeriği:\n" + text)
+
+        # Amazon linklerini tespit eden regex: amazon.de, amzn.to, amzn.eu
+        pattern = r"(https?://(?:www\.)?(?:amazon\.de|amzn\.to|amzn\.eu)[^\s]+)"
+        found_links = re.findall(pattern, text)
+
+        logging.info(f"🔍 Mesajda bulunan link adedi: {len(found_links)}")
+        if found_links:
+            logging.info("🔍 Tespit edilen linkler: " + ", ".join(found_links))
+            conversion_failed = False
+            for link in found_links:
+                affiliate_link = await processor.process_amazon_link(link)
+                if affiliate_link:
+                    text = text.replace(link, affiliate_link)
+                    logging.info(f"✏️ Link dönüştürüldü: {link} -> {affiliate_link}")
+                else:
+                    logging.error(f"🚨 Affiliate link oluşturulamadı: {link}")
+                    conversion_failed = True
+            if conversion_failed:
+                logging.error("🚨 Bazı linkler dönüştürülemediği için mesaj gönderilmiyor.")
+                return  # Dönüştürülemeyen link varsa mesaj gönderilmiyor.
+        else:
+            logging.info("🔍 Mesajda Amazon linki bulunamadı.")
+
+        logging.info("💬 Dönüştürülmüş mesaj içeriği:\n" + text)
+        try:
+            await client.send_message(TARGET_CHANNEL, text)
+            logging.info(f"✅ Dönüştürülmüş mesaj başarıyla gönderildi: Hedef Kanal: {TARGET_CHANNEL}")
+        except Exception as send_error:
+            logging.error(f"🚨 Mesaj gönderme hatası: {send_error}")
+    except Exception as e:
+        logging.error(f"🔴 Mesaj işleme hatası: {e}")
+
+# -----------------------------------------------------------------------------
+# Botun Mesajları Dinlemesini Sağlayan Fonksiyon
+async def start_bot():
+    client = await login_to_telegram()
+
+    async with aiohttp.ClientSession() as aiohttp_session:
         processor = AmazonLinkProcessor(AFFILIATE_TAG, aiohttp_session)
-        register_handlers(client, processor)
 
-        while True:
-            try:
-                logging.info("🚀 Aliveli userbot başlatılıyor...")
-                await client.connect()
+        @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
+        async def channel_message_handler(event):
+            logging.info("📨 Yeni mesaj alındı.")
+            if event.message:
+                try:
+                    source = getattr(event.message.peer_id, "channel_id", "Bilinmiyor")
+                    logging.info(f"📡 Mesajın geldiği kanal ID: {source}")
+                except Exception as e:
+                    logging.warning(f"⚠ Kaynak kanal bilgisi alınamadı: {e}")
+                await forward_message(event.message, client, processor)
+            else:
+                logging.warning("⚠ Olayda mesaj verisi bulunamadı.")
 
-                if not await client.is_user_authorized():
-                    logging.warning("⚠ Bağlantı yetkisiz! Lütfen telefon numarası ile giriş yapın.")
-                    await client.send_code_request("+905325674607")
-                    code = input("Telegram Kodunu Girin: ")
-                    await client.sign_in("+905325674607", code)
+        logging.info("🚀 Bot çalışıyor, mesajlar dinleniyor...")
+        await client.run_until_disconnected()
 
-                logging.info("✅ Bağlantı başarılı, bot çalışıyor...")
-                await client.run_until_disconnected()
-            except FloodWaitError as e:
-                wait_time = e.seconds
-                logging.warning(f"🟡 FloodWaitError: {wait_time} saniye bekleniyor...")
-                await asyncio.sleep(wait_time)
-            except (RPCError, SessionPasswordNeededError, OSError) as e:
-                logging.warning(f"🔄 Bağlantı hatası: {e}. {retry_delay} saniye sonra yeniden bağlanılıyor...")
-                await asyncio.sleep(retry_delay)
-                retry_delay = min(retry_delay * 2, 60)  # Maksimum 60 saniye bekleyin
-            except Exception as e:
-                logging.error(f"🔴 Beklenmedik hata: {e}")
-                await asyncio.sleep(retry_delay)
-
-# --------------------------------------
-# Program başlangıcı
+# -----------------------------------------------------------------------------
+# Botu Başlat
 if __name__ == '__main__':
     try:
         asyncio.run(start_bot())
     except KeyboardInterrupt:
-        logging.info("Program kapatılıyor...")
+        logging.info("🛑 Program kapatılıyor...")
+
